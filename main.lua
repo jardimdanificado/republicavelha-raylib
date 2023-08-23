@@ -1,4 +1,4 @@
-local republica = require("republicanova")
+local republica = require("republicanova.init")
 local exit = false
 local options = require('data.config')
 

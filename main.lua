@@ -1,3 +1,5 @@
+package.path = package.path .. ";republicanova/luatils/?.lua"
+package.path = package.path .. ";republicanova/luatils/init.lua"
 local republica = require("republicanova.init")
 local exit = false
 local options = require('data.config')
@@ -389,6 +391,7 @@ function main()
         if(rl == nil) then
             setAndGo(sys)
         else
+            print('dadasd')
             start()
         end
     end

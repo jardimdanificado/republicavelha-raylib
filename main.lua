@@ -312,7 +312,7 @@ function start()
     rl.SetConfigFlags(rl.FLAG_WINDOW_RESIZABLE)
     rl.InitWindow(options.screen.x, options.screen.y, options.title)
     rl.SetTargetFPS(options.framerate)
-    mocegui.startup(options.screen,14)
+    mocegui.startup(options.screen,12)
     options.rendertexture = rl.LoadRenderTexture(options.screen.x, options.screen.y)
     options.camera = rl.new("Camera", {
         position = options.cameraposition,
@@ -345,16 +345,14 @@ function start()
     
     local defwin = mocegui.newWindow(nil,{x=(600/2)-144,y=48},{x=288,y=94}) -- default window
     defwin.text.new('Right mouse button close windows.\nMiddle mouse button move windows.\nLeft mouse button interacts, and also move\nwindows if click on title bar.\nWhen a window got title bar it also got a close\nbutton on top12-right',{x=4,y=4})
-    mocegui.pending = republica.util.agendar(mocegui.pending, function()
+    republica.util.agendar(mocegui.pending, function(obj)
         for i,v in ipairs(mocegui.window) do
-            
-            if v == defwin then
+            if v == obj then
                 mocegui.window[i] = nil
                 mocegui.window = republica.util.array.clear(mocegui.window)
                 break
             end
         end
-        mocegui.pending = republica.util.array.clear(mocegui.pending)
     end,{defwin},4)
 
     while not rl.WindowShouldClose() do

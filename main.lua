@@ -1,5 +1,6 @@
 package.path = package.path .. ";republicanova/luatils/?.lua"
 package.path = package.path .. ";republicanova/luatils/init.lua"
+local mocegui = require("mocegui.init")
 local republica = require("republicanova.init")
 local exit = false
 local options = require('data.config')
@@ -86,11 +87,11 @@ local function render(world,simplifiedterrain,watercube)
         options.rendertexture = rl.LoadRenderTexture(options.screen.x, options.screen.y)
         world.redraw=true
     end
-    
+    mocegui.update()
     rl.BeginDrawing()
     if(world.redraw == true and options.freeze == false) then
         rl.BeginTextureMode(options.rendertexture)
-        rl.ClearBackground(rl.RAYWHITE)
+        rl.ClearBackground(rl.BLACK)
         rl.BeginMode3D(options.camera)
         if options.renderterrain then
             if(options.simple == true) then
@@ -174,9 +175,19 @@ local function render(world,simplifiedterrain,watercube)
         0,
         rl.WHITE
     );
-    if options.fpscounter then
-        rl.DrawFPS(10, 10)
-    end
+    rl.DrawTexturePro(
+        mocegui.bakeframe(),
+        {
+            x=0,
+            y=0,
+            width=options.screen.x,
+            height=options.screen.y*-1
+        },
+        {x=0,y=0,width=options.screen.x,height=options.screen.y},
+        {x=0,y=0},
+        0,
+        rl.WHITE
+    );
     
     rl.EndDrawing() 
 end
@@ -301,6 +312,7 @@ function start()
     rl.SetConfigFlags(rl.FLAG_WINDOW_RESIZABLE)
     rl.InitWindow(options.screen.x, options.screen.y, options.title)
     rl.SetTargetFPS(options.framerate)
+    mocegui.startup(options.screen,14)
     options.rendertexture = rl.LoadRenderTexture(options.screen.x, options.screen.y)
     options.camera = rl.new("Camera", {
         position = options.cameraposition,
@@ -322,6 +334,29 @@ function start()
         coroutine.resume(frame_co, world)--pre start the routines
         coroutine.resume(render_co, world, simpler, watercube)
     end
+
+    mocegui.spawndebug()
+    local counter = 0
+    local windowspawner = mocegui.newWindow('window spawner',{x=(600/2)-50,y=148},{x=100,y=60},{r=120,g=100,b=128,a=255}) -- default window
+    windowspawner.button.new({x=windowspawner.size.x/2-16,y=windowspawner.size.y/2-4},{x=32,y=16},function ()
+        counter = counter + 1
+        mocegui.newWindow("window " .. counter,{x=mocegui.util.random(0,600/2),y=mocegui.util.random(0,400/2)-16},{x=mocegui.util.random(0,600/2)+16,y=mocegui.util.random(0,400/2)+16})
+    end)
+    
+    local defwin = mocegui.newWindow(nil,{x=(600/2)-144,y=48},{x=288,y=94}) -- default window
+    defwin.text.new('Right mouse button close windows.\nMiddle mouse button move windows.\nLeft mouse button interacts, and also move\nwindows if click on title bar.\nWhen a window got title bar it also got a close\nbutton on top12-right',{x=4,y=4})
+    mocegui.pending = republica.util.agendar(mocegui.pending, function()
+        for i,v in ipairs(mocegui.window) do
+            
+            if v == defwin then
+                mocegui.window[i] = nil
+                mocegui.window = republica.util.array.clear(mocegui.window)
+                break
+            end
+        end
+        mocegui.pending = republica.util.array.clear(mocegui.pending)
+    end,{defwin},4)
+
     while not rl.WindowShouldClose() do
         teclado(world)
         if(options.multithread) then
@@ -391,7 +426,6 @@ function main()
         if(rl == nil) then
             setAndGo(sys)
         else
-            print('dadasd')
             start()
         end
     end

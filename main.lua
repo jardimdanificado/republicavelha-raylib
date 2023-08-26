@@ -215,6 +215,12 @@ local function run_frame(world)
 end
 
 local function teclado(world)
+    local wheel = rl.GetMouseWheelMove()
+    if wheel ~= 0 then
+        world.redraw = true
+        options.camera.fovy = options.camera.fovy - (wheel*5)
+        rl.UpdateCamera(options.camera,0)
+    end
     if(rl.IsKeyPressed(rl.KEY_C)) then
         world.redraw = true
         options.freeze = (options.freeze == false) and true or false
@@ -335,7 +341,6 @@ function start()
         coroutine.resume(render_co, world, simpler, watercube)
     end
 
-    mocegui.spawndebug()
     local counter = 0
     local windowspawner = mocegui.newWindow('window spawner',{x=(600/2)-50,y=148},{x=100,y=60},{r=120,g=100,b=128,a=255}) -- default window
     windowspawner.button.new({x=windowspawner.size.x/2-16,y=windowspawner.size.y/2-4},{x=32,y=16},function ()
@@ -354,6 +359,7 @@ function start()
             end
         end
     end,{defwin},4)
+    mocegui.spawndebug()
 
     while not rl.WindowShouldClose() do
         teclado(world)
@@ -373,60 +379,10 @@ function start()
     rl.CloseWindow()
 end
 
-function setup(sys)
-    if sys == "Windows" then    
-        os.execute("curl -s https://api.github.com/repos/TSnake41/raylib-lua/releases/latest | grep \"browser_download_url.*zip\" | cut -d : -f 2,3 | tr -d \\\" | wget -qi - \n" ..
-        "unzip -q raylua-*.zip")
-    else
-        os.execute(
-            "rm raylua_* raylib-lua -rf \n" ..
-            "git clone https://github.com/TSnake41/raylib-lua --depth 1 \n" ..
-            "cd raylib-lua \n" ..
-            "git submodule init \n" ..
-            "git submodule update \n" ..
-            "make  &&  cd .. \n" .. 
-            "cp ./raylib-lua/raylua_* . \n")
-    end
-
-end
-
-function setAndGo(sys)
-    local execpath =  (sys == "Windows") and "./raylua_s.exe" or "./raylua_s"
-    if(republica.util.file.exist(execpath) == false) then 
-        setup(sys)
-    end
-    os.execute(execpath .. ' main.lua')
-end
-
 function main()
     local ffi = require "ffi"
     local sys = ffi.os
-    if(arg[1] ~= nil and arg[1] ~= 'main.lua') then
-        if(arg[1] == 'compile') then
-            local extension = (sys == "Windows") and '.exe' or '.appimage'
-            local execpath =  (sys == "Windows") and "./raylua_r.exe" or "./raylua_e"
-            if(republica.util.file.exist(execpath) == false) then 
-                setup(sys)
-            end
-            os.execute(
-                    "zip -r compile.zip main.lua src data \n" ..
-                    execpath .. " compile.zip &&  rm compile.zip &&  mv compile_out republicanova" .. extension)
-            os.exit()
-        elseif(arg[1] == 'setup') then
-            setup(sys)
-            return
-        elseif(rl == nil) then
-            setAndGo(sys)
-        else
-            start()
-        end
-    else
-        if(rl == nil) then
-            setAndGo(sys)
-        else
-            start()
-        end
-    end
+    start()
 end
 
 main()--

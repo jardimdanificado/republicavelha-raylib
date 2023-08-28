@@ -57,7 +57,7 @@ local function _debugger(world)
     -- freeze button
     local freeze = debugpanel.button.new({x=debugpanel.size.x-mocegui.font.size,y=4+(mocegui.font.size*#debugpanel.button+1)+(mocegui.font.size*3)},{x=mocegui.font.size-4,y=mocegui.font.size-4})
     freeze.func = function ()
-        freeze.color = (not options.freeze) and rl.RED or rl.GREEN
+        freeze.color = (options.freeze) and rl.RED or rl.GREEN
         world.redraw = true
         options.freeze = (options.freeze == false) and true or false
         print (options.freeze)
@@ -67,7 +67,7 @@ local function _debugger(world)
     -- rendergrass button
     local rendergrass = debugpanel.button.new({x=debugpanel.size.x-mocegui.font.size,y=4+(mocegui.font.size*#debugpanel.button+1)+(mocegui.font.size*3)},{x=mocegui.font.size-4,y=mocegui.font.size-4})
     rendergrass.func = function ()
-        rendergrass.color = (not options.rendergrass) and rl.RED or rl.GREEN
+        rendergrass.color = (options.rendergrass) and rl.RED or rl.GREEN
         world.redraw = true
         options.rendergrass = (options.rendergrass == false) and true or false
     end

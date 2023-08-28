@@ -191,9 +191,8 @@ function main()
         coroutine.resume(render_co, world, simpler, watercube, republica, options, mocegui)
     end
 
-    -- spawns debugger window
+    -- spawns extended debugger window
     local debbuger = _debugger(world)
-    mocegui.spawndebug()
 
     --startup message
     local versiculo = 

@@ -1,212 +1,36 @@
 package.path = package.path .. ";republicanova/luatils/?.lua"
 package.path = package.path .. ";republicanova/luatils/init.lua"
+
+-- Mouse Centered GUI
 local mocegui = require("mocegui.init")
+
+-- Republica's core
 local republica = require("republicanova.init")
-local exit = false
+
+-- republicavelha-raylib libs
 local options = require('data.config')
+local _render = require('render')
+local teclado = require("teclado")
 
-local function ytoz(vec3)
-    return {x = vec3.x, y = vec3.z, z = vec3.y}
-end
+-- republicavelha-raylib vars
+local exit = false
 
-local function y_rgba(index, min_val, max_val, invert)
-    local range = max_val - min_val
-    local val = (index - min_val) / range
-    local r = math.floor(255 * val)
-    local b = math.floor(255 * (1 - val))
-    local g = 128
-    if(invert) then
-        b,r,g = g,r,b
-    end
-    return rl.new("Color",r,g,b,255)
-end
-
-local function simplify(arr)
-    local b = {}
-    local dY = false
-    local chk = {}
-    for i=1,#arr do
-        chk[i]={}
-        for j=1,#arr[1] do chk[i][j]=false end
-    end
-    for x=1,#arr do
-        for y=1,#arr[1] do
-            if chk[x][y] then goto continue else
-                local v = arr[x][y]
-                local cB = {min={x=x,y=y},max={x=x,y=y},value=v}
-                local cX = 0
-                local exit = false
-                while not exit do
-                    if arr[x+cX] and arr[x+cX][y]==v then chk[x+cX][y]=true cX=cX+1 else exit=true end
-                end
-                exit = false
-                local cY = 0
-                while not exit and y+cY<#arr[1] do
-                    if arr[x][y+cY]==v then
-                        local cks={}
-                        for xx=0,cX-1 do for yy=0,cY-1 do table.insert(cks,(arr[cB.max.x+xx][cB.max.y+yy]==v) and 1 or 0) end end
-                        if republica.util.array.sum(cks)==#cks then
-                            for xx=0,cX-1 do for yy=0,cY-1 do chk[cB.max.x+xx][cB.max.y+yy]=true end end
-                            cY=cY+1
-                        else exit=true end
-                    else exit=true end
-                end
-                cB.max.y = cB.max.y + cY - 1
-                cB.max.x = cB.max.x + cX - 1
-                exit=false
-                table.insert(b, cB)
-            end
-            ::continue::
-        end
-    end
-
-    local blocks = {}
-    for i=1,#b do 
-        local min,max = republica.util.matrix.minmax(arr)
-        b[i]={
-            position = rl.new("Vector3",
-            b[i].min.x-0.5+(b[i].max.x-b[i].min.x+1)/2,
-            b[i].value-min+1,
-            b[i].min.y-0.5+(b[i].max.y-b[i].min.y+1)/2),
-            size = rl.new("Vector3",(b[i].max.x-b[i].min.x+1),1,(b[i].max.y-b[i].min.y+1)),
-            color = y_rgba(b[i].value,min,max),
-            gridcolor = y_rgba(b[i].value,min,max,true)
-        }
-        b[i].gridcolor.a = 200
-        table.insert(blocks,b[i])
-    end
-
-    return blocks;
-end 
-
-local function render(world,simplifiedterrain,watercube)
-    if(rl.IsWindowResized()) then
-        rl.UnloadRenderTexture(options.rendertexture)
-        options.screen.x = rl.GetScreenWidth()
-        options.screen.y = rl.GetScreenHeight()
-        options.rendertexture = rl.LoadRenderTexture(options.screen.x, options.screen.y)
-        world.redraw=true
-    end
-    mocegui.update()
-    rl.BeginDrawing()
-    if(world.redraw == true and options.freeze == false) then
-        rl.BeginTextureMode(options.rendertexture)
-        rl.ClearBackground(rl.BLACK)
-        rl.BeginMode3D(options.camera)
-        if options.renderterrain then
-            if(options.simple == true) then
-                for x = 1, #simplifiedterrain do
-                    if (options.renderwires) then
-                        rl.DrawCubeWires(simplifiedterrain[x].position,simplifiedterrain[x].size.x,1,simplifiedterrain[x].size.z,simplifiedterrain[x].gridcolor)
-                    end
-                    rl.DrawCube(simplifiedterrain[x].position,simplifiedterrain[x].size.x,1,simplifiedterrain[x].size.z,simplifiedterrain[x].color)
-                    
-                end
-            else
-                for x = 1, #world.map.height do
-                    for z = 1, #world.map.height do
-                        rl.DrawCube({x=x,y=world.map.height[x][z],z=z},1,1,1,y_rgba(world.map.height[x][z],min,max))
-                        if (options.renderwires) then
-                            rl.DrawCubeWires({x=x,y=world.map.height[x][z],z=z},1,1,1,y_rgba(world.map.height[x][z],min,max,true))
-                        end
-                    end
-                end
-            end
-        end
-            
-        for i, plant in ipairs(world.plant) do 
-            if plant.type == 'seed' then
-                rl.DrawCube(ytoz(plant.position),0.5,1.01,0.5,{r=0,g=255,b=0,a=55})
-            elseif plant.specie == 'grass' then
-                if options.rendergrass then
-                    if(options.prettygrass == false) then
-                        local temp = ytoz(plant.position)
-                        temp.y = temp.y + 0.6
-                        rl.DrawPlane(temp,{x=1,y=1},{r=100,g=255,b=50,a=95})
-                    else
-                        rl.DrawCube(ytoz(plant.position),republica.util.random(1.111,1.333),republica.util.random(1.111,1.333),republica.util.random(1.111,1.333),rl.new("Color",100,republica.util.random(200,255),50,republica.util.random(55,95)))
-                    end
-                end
-            elseif republica.plants[plant.specie].size.max <=100 then
-                local tempposi = ytoz(plant.position)
-                tempposi.y = tempposi.y + 1
-                rl.DrawCube(tempposi,1,1,1,rl.YELLOW)
-                if(options.renderwires) then
-                    rl.DrawCubeWires(ytoz(plant.position),1,1,1,rl.RED)
-                end
-            elseif republica.util.string.includes(republica.plants[plant.specie].type,'tree') then
-                for i, trunk in ipairs(plant.trunk) do
-                    rl.DrawCube(ytoz(trunk.position),1,1,1,{r=59,g=50,b=0,a=255})
-                    if(options.renderwires) then
-                        rl.DrawCubeWires(ytoz(trunk.position),1,1,1,{r=0,g=0,b=0,a=55})
-                    end
-                end
-                for i, branch in ipairs(plant.branch) do
-                    rl.DrawCube(ytoz(branch.position),1,1,1,{r=85,g=105,b=0,a=245})
-                    if(options.renderwires) then
-                        rl.DrawCubeWires(ytoz(branch.position),1,1,1,{r=0,g=0,b=0,a=55})
-                    end
-                end
-                for i, root in ipairs(plant.root) do
-                    rl.DrawCube(ytoz(root.position),1,1,1,{r=240,g=235,b=200,a=255})
-                    if(options.renderwires) then
-                        rl.DrawCubeWires(ytoz(root.position),1,1,1,{r=0,g=0,b=0,a=50})
-                    end
-                end
-            end
-        end
-        if options.renderwater then
-            rl.DrawCube(republica.util.array.unpack(watercube))
-        end
-        rl.EndMode3D()
-        rl.EndTextureMode();
-        world.redraw = false
-    end
-    rl.DrawTexturePro(
-        options.rendertexture.texture,
-        {
-            x=0,
-            y=0,
-            width=options.screen.x,
-            height=options.screen.y*-1
-        },
-        {x=0,y=0,width=options.screen.x,height=options.screen.y},
-        {x=0,y=0},
-        0,
-        rl.WHITE
-    );
-    rl.DrawTexturePro(
-        mocegui.bakeframe(),
-        {
-            x=0,
-            y=0,
-            width=options.screen.x,
-            height=options.screen.y*-1
-        },
-        {x=0,y=0,width=options.screen.x,height=options.screen.y},
-        {x=0,y=0},
-        0,
-        rl.WHITE
-    );
-    
-    rl.EndDrawing() 
-end
-
-local function run_render(world,simplifiedterrain,watercube)
-    
+-- multithread for render
+local function run_render(world,simplifiedterrain,watercube,republica,options,mocegui)
     while true do
-        
-        render(world,simplifiedterrain,watercube)
+        _render.render(world,simplifiedterrain,watercube,republica,options,mocegui)
         coroutine.yield()
     end
 end
 
+-- frame function
 local function frame(world)
     if(options.paused == false) then
         world.frame(world)
     end
 end
 
+-- multithread for frame
 local function run_frame(world)
     while true do
         frame(world)
@@ -214,89 +38,91 @@ local function run_frame(world)
     end
 end
 
-local function teclado(world)
-    local wheel = rl.GetMouseWheelMove()
-    if wheel ~= 0 then
-        world.redraw = true
-        options.camera.fovy = options.camera.fovy - (wheel*5)
-        rl.UpdateCamera(options.camera,0)
-    end
-    if(rl.IsKeyPressed(rl.KEY_C)) then
-        world.redraw = true
-        options.freeze = (options.freeze == false) and true or false
-        print (options.freeze)
-    elseif(rl.IsKeyPressed(rl.KEY_P)) then
-        world.redraw = true
-        options.prettygrass = (options.prettygrass == false) and true or false
-    elseif(rl.IsKeyPressed(rl.KEY_W)) then
-        world.redraw = true
-        options.renderwater = (options.renderwater == false) and true or false
-    elseif(rl.IsKeyPressed(rl.KEY_F)) then
-        world.redraw = true
-        print(world.time)
-    elseif(rl.IsKeyPressed(rl.KEY_R)) then
-        world.redraw = true
-        options.renderwires = (options.renderwires == false) and true or false
-    elseif(rl.IsKeyPressed(rl.KEY_G)) then
-        world.redraw = true
-        options.rendergrass = (options.rendergrass == false) and true or false
-    elseif(rl.IsKeyPressed(rl.KEY_T)) then
-        world.redraw = true
-        options.renderterrain = (options.renderterrain == false) and true or false
-    elseif(rl.IsKeyDown(rl.KEY_PAGE_UP)) then
-        world.redraw = true
-        options.camera.position.y = options.camera.position.y + 2
-        rl.UpdateCamera(options.camera,0)
-    elseif(rl.IsKeyDown(rl.KEY_PAGE_DOWN)) then
-        world.redraw = true
-        options.camera.position.y = options.camera.position.y - 2
-        rl.UpdateCamera(options.camera,0)
-    elseif(rl.IsKeyDown(rl.KEY_UP)) then
-        world.redraw = true
-        options.camera.target.y = options.camera.target.y + 2
-        rl.UpdateCamera(options.camera,0)
-    elseif(rl.IsKeyDown(rl.KEY_DOWN)) then
-        world.redraw = true
-        options.camera.target.y = options.camera.target.y - 2
-        rl.UpdateCamera(options.camera,0)
-    elseif(rl.IsKeyDown(rl.KEY_RIGHT)) then
-        world.redraw = true
-        options.camera.position = republica.util.math.rotate(options.camera.position,options.camera.target,-3)
-        rl.UpdateCamera(options.camera,0)
-        if(not rl.IsKeyDown(rl.KEY_LEFT_SHIFT) and not rl.IsKeyDown(rl.KEY_RIGHT_SHIFT)) then
-            options.camera.target = {x=#world.map.height/2,y=options.camera.target.y,z=#world.map.height/2}
-        end
-    elseif(rl.IsKeyDown(rl.KEY_LEFT)) then
-        world.redraw = true
-        options.camera.position = republica.util.math.rotate(options.camera.position,options.camera.target,3)
-        rl.UpdateCamera(options.camera,0)
-        if(not rl.IsKeyDown(rl.KEY_LEFT_SHIFT) and not rl.IsKeyDown(rl.KEY_RIGHT_SHIFT)) then
-            options.camera.target = {x=#world.map.height/2,y=options.camera.target.y,z=#world.map.height/2}
-        end
-    elseif(rl.IsKeyDown(rl.KEY_PERIOD)) then
-        world.redraw = true
-        options.camera.fovy = options.camera.fovy - 1
-        rl.UpdateCamera(options.camera,0)
-    elseif(rl.IsKeyDown(rl.KEY_COMMA)) then
-        world.redraw = true
-        options.camera.fovy = options.camera.fovy + 1
-        rl.UpdateCamera(options.camera,0)
-    elseif(rl.IsKeyPressed(rl.KEY_SPACE)) then
+local function _debugger(world)
+    -- this spawns the mocegui default debug window
+    local debugpanel = mocegui.spawndebug()
+    debugpanel.text.new("pause\nfreeze\nrendergrass\nrenderterrain\nrenderwater\nrenderwires\npretty grass",{x=0,y=2+(mocegui.font.size*4)})
+    debugpanel.size.y = debugpanel.size.y + (mocegui.font.size+2)*6
+    
+    -- pause button
+    local paused = debugpanel.button.new({x=debugpanel.size.x-mocegui.font.size,y=4+mocegui.font.size*4},{x=mocegui.font.size-4,y=mocegui.font.size-4})
+    paused.func = function ()
+        paused.color = (options.paused) and rl.RED or rl.GREEN
         world.redraw = true
         options.paused = (options.paused == false) and true or false
         print("paused = " .. (options.paused and 'true' or 'false'))
     end
+    paused.color = (not options.paused) and rl.RED or rl.GREEN
+
+    -- freeze button
+    local freeze = debugpanel.button.new({x=debugpanel.size.x-mocegui.font.size,y=4+(mocegui.font.size*#debugpanel.button+1)+(mocegui.font.size*3)},{x=mocegui.font.size-4,y=mocegui.font.size-4})
+    freeze.func = function ()
+        freeze.color = (not options.freeze) and rl.RED or rl.GREEN
+        world.redraw = true
+        options.freeze = (options.freeze == false) and true or false
+        print (options.freeze)
+    end
+    freeze.color = (not options.freeze) and rl.RED or rl.GREEN
+
+    -- rendergrass button
+    local rendergrass = debugpanel.button.new({x=debugpanel.size.x-mocegui.font.size,y=4+(mocegui.font.size*#debugpanel.button+1)+(mocegui.font.size*3)},{x=mocegui.font.size-4,y=mocegui.font.size-4})
+    rendergrass.func = function ()
+        rendergrass.color = (not options.rendergrass) and rl.RED or rl.GREEN
+        world.redraw = true
+        options.rendergrass = (options.rendergrass == false) and true or false
+    end
+    rendergrass.color = (not options.rendergrass) and rl.RED or rl.GREEN
+
+    -- renderterrain button
+    local renderterrain = debugpanel.button.new({x=debugpanel.size.x-mocegui.font.size,y=4+(mocegui.font.size*#debugpanel.button+1)+(mocegui.font.size*3)},{x=mocegui.font.size-4,y=mocegui.font.size-4})
+    renderterrain.func = function ()
+        renderterrain.color = (options.renderterrain) and rl.RED or rl.GREEN
+        world.redraw = true
+        options.renderterrain = (options.renderterrain == false) and true or false
+    end
+    renderterrain.color = (not options.renderterrain) and rl.RED or rl.GREEN
+    
+    -- renderwater button
+    local renderwater = debugpanel.button.new({x=debugpanel.size.x-mocegui.font.size,y=4+(mocegui.font.size*#debugpanel.button+1)+(mocegui.font.size*3)},{x=mocegui.font.size-4,y=mocegui.font.size-4})
+    renderwater.func = function ()
+        renderwater.color = (options.renderwater) and rl.RED or rl.GREEN
+        world.redraw = true
+        options.renderwater = (options.renderwater == false) and true or false
+    end
+    renderwater.color = (not options.renderwater) and rl.RED or rl.GREEN
+
+    -- nrenderwires button
+    local renderwires = debugpanel.button.new({x=debugpanel.size.x-mocegui.font.size,y=4+(mocegui.font.size*#debugpanel.button+1)+(mocegui.font.size*3)},{x=mocegui.font.size-4,y=mocegui.font.size-4})
+    renderwires.func = function ()
+        renderwires.color = (options.renderwires) and rl.RED or rl.GREEN
+        world.redraw = true
+        options.renderwires = (options.renderwires == false) and true or false
+    end
+    renderwires.color = (not options.renderwires) and rl.RED or rl.GREEN
+
+    -- prettygrass button
+    local prettygrass = debugpanel.button.new({x=debugpanel.size.x-mocegui.font.size,y=4+(mocegui.font.size*#debugpanel.button+1)+(mocegui.font.size*3)},{x=mocegui.font.size-4,y=mocegui.font.size-4})
+    prettygrass.func = function ()
+        prettygrass.color = (options.prettygrass) and rl.RED or rl.GREEN
+        print(prettygrass.color.r)
+        world.redraw = true
+        options.prettygrass = (options.prettygrass == false) and true or false
+    end
+    prettygrass.color = (not options.prettygrass) and rl.RED or rl.GREEN
 end
 
-function start()
-    --size up to 6 is safe, above 6 you can get buggy maps, default is 2
-    --layers up to 16 are safe, default is 8
+-- main loop
+function main()
+    -- size up to 6 is safe, above 6 you can get buggy maps, default is 2
+    -- layers up to 16 are safe, default is 8
+    -- generate the world and map
     local world = republica.world(options.mapsize,options.mapquality,options.mappolish)
+    
+    -- set options redraw to world
     world.redraw = options.redraw
     options.redraw = nil
-    
-    --rl.SetConfigFlags(rl.FLAG_MSAA_4X_HINT)
 
+    -- checking options for raylib flags 
     if options.fullscreen then
         rl.SetConfigFlags(rl.FLAG_FULLSCREEN_MODE)
     end
@@ -315,11 +141,23 @@ function start()
     if options.highdpi then
         rl.SetConfigFlags(rl.FLAG_WINDOW_HIGHDPI)
     end
+
+    -- by default ive set window resizable
     rl.SetConfigFlags(rl.FLAG_WINDOW_RESIZABLE)
+
+    -- creates window
     rl.InitWindow(options.screen.x, options.screen.y, options.title)
+
+    -- sets target fps from options
     rl.SetTargetFPS(options.framerate)
-    mocegui.startup(options.screen,12)
+
+    -- starts MoCeGUI
+    mocegui.startup(options.screen,16)
+
+    -- creates a render text, as we dont draw on the screen directly
     options.rendertexture = rl.LoadRenderTexture(options.screen.x, options.screen.y)
+    
+    -- sets the default camera
     options.camera = rl.new("Camera", {
         position = options.cameraposition,
         target = rl.new("Vector3", #world.map.height/2, republica.util.matrix.average(world.map.height), #world.map.height/2),
@@ -328,61 +166,85 @@ function start()
         type = rl.CAMERA_PERSPECTIVE,
     })
     options.cameraposition = nil
+    
+    -- gets min and max heights from de generated map
     local min,max = republica.util.matrix.minmax(world.map.height)
-    local simpler = simplify(world.map.height)
+    
+    -- reduces a huge amount of cubes into a few for faster rendering
+    local simpler = _render.simplify_blocks(world.map.height)
+    
+    -- just a big blue cube, to be removed when fluids fully implemented
     local watercube = {{x=0+#world.map.height/2,y=0.5,z=#world.map.height[1]/2},#world.map.height,world.map.waterlevel*2,#world.map.height[1],rl.new("Color",0,190,125,185)}
+    
+    -- just a console message that logs the total amount of cubes and the reduced amount after simplification
     print("\nmerged " .. #world.map.height*#world.map.height[1] .. ' blocks into ' .. #simpler .. ' blocks\n')
+    
+    -- sets variables for multithreading
     local frame_co
     local render_co
+    
+    -- sets multithreading
     if(options.multithread) then
         frame_co = coroutine.create(run_frame)
         render_co = coroutine.create(run_render)
         coroutine.resume(frame_co, world)--pre start the routines
-        coroutine.resume(render_co, world, simpler, watercube)
+        coroutine.resume(render_co, world, simpler, watercube, republica, options, mocegui)
     end
 
-    local counter = 0
-    local windowspawner = mocegui.newWindow('window spawner',{x=(600/2)-50,y=148},{x=100,y=60},{r=120,g=100,b=128,a=255}) -- default window
-    windowspawner.button.new({x=windowspawner.size.x/2-16,y=windowspawner.size.y/2-4},{x=32,y=16},function ()
-        counter = counter + 1
-        mocegui.newWindow("window " .. counter,{x=mocegui.util.random(0,600/2),y=mocegui.util.random(0,400/2)-16},{x=mocegui.util.random(0,600/2)+16,y=mocegui.util.random(0,400/2)+16})
-    end)
-    
-    local defwin = mocegui.newWindow(nil,{x=(600/2)-144,y=48},{x=288,y=94}) -- default window
-    defwin.text.new('Right mouse button close windows.\nMiddle mouse button move windows.\nLeft mouse button interacts, and also move\nwindows if click on title bar.\nWhen a window got title bar it also got a close\nbutton on top12-right',{x=4,y=4})
+    -- spawns debugger window
+    local debbuger = _debugger(world)
+    mocegui.spawndebug()
+
+    --startup message
+    local versiculo = 
+[[1 No principio, Deus criou os ceus e a terra.
+2 A terra estava informe e vazia; as trevas cobriam o
+abismo e o Espirito de Deus pairava sobre as aguas. 
+3 Deus disse: 'Faca-se a luz!' E a luz foi feita.
+4 Deus viu que a luz era boa, e separou a luz das trevas.
+5 Deus chamou a luz DIA, e as trevas NOITE. 
+Sobreveio a tarde e depois a manha: foi o primeiro dia.
+]]
+.. [[                                            Genesis 1:1-5]]
+
+    -- this set the message window that pops up the disapears
+    local defwin = mocegui.newWindow(nil,{x=options.screen.x-413,y=options.screen.y-135},{x=412,y=134}) -- default window
+    defwin.text.new(versiculo,{x=4,y=4})
     republica.util.agendar(mocegui.pending, function(obj)
         for i,v in ipairs(mocegui.window) do
             if v == obj then
-                mocegui.window[i] = nil
+                mocegui.window = republica.util.array.clear(mocegui.window)
+                republica.util.table.move(mocegui.window,i,#mocegui.window)
+                mocegui.window[#mocegui.window] = nil
                 mocegui.window = republica.util.array.clear(mocegui.window)
                 break
             end
         end
-    end,{defwin},4)
-    mocegui.spawndebug()
-
+    end,{defwin},7)
+    
+    
+    -- main loop
     while not rl.WindowShouldClose() do
-        teclado(world)
+        
+        -- keyboard function
+        teclado(world,republica,options)
+
+        -- main loop condition, checks if is multithreaded or not then do 
         if(options.multithread) then
             if coroutine.status(frame_co) == "suspended" then
                 coroutine.resume(frame_co, world)
             end
             if coroutine.status(render_co) == "suspended" and world.time % options.slowrender == 0 then
-                coroutine.resume(render_co, world,simpler,watercube)
+                coroutine.resume(render_co, world,simpler,watercube,republica,options,mocegui)
             end
         else
             frame(world)
-            render(world,simpler,watercube)
+            _render.render(world,simpler,watercube,republica,options,mocegui)
         end
+
     end
     exit = true
     rl.CloseWindow()
-end
-
-function main()
-    local ffi = require "ffi"
-    local sys = ffi.os
-    start()
 end
 
 main()--

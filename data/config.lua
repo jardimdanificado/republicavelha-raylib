@@ -7,11 +7,10 @@ o.mappolish = 2 -- 0-2 higher values will need more resouces rendering
 --general
 o.framerate = 0
 o.slowrender = 1 --minimum is 1, 0 will freeze the game
-o.fpscounter = true
 o.fullscreen = false
 o.vsync = false
 o.runonbackground = true
-o.multithread = false
+o.multithread = true
 --graphics
 o.screen = 
 {
@@ -26,7 +25,7 @@ o.freeze = false
 o.rendergrass = true
 o.renderterrain = true
 o.renderwater = true
-o.renderwires = true
+o.renderwires = false
 o.prettygrass = false
 --camera
 o.cameraposition = {x=-20,y=100,z=-20}

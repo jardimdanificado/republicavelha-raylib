@@ -38,77 +38,26 @@ local function run_frame(world)
     end
 end
 
-local function _debugger(world)
+
+
+function options._debugger(world,customposition)
     -- this spawns the mocegui default debug window
-    local debugpanel = mocegui.spawndebug()
-    debugpanel.text.new("pause\nfreeze\nrendergrass\nrenderterrain\nrenderwater\nrenderwires\npretty grass",{x=0,y=2+(mocegui.font.size*4)})
-    debugpanel.size.y = debugpanel.size.y + (mocegui.font.size+2)*6
-    
-    -- pause button
-    local paused = debugpanel.button.new({x=debugpanel.size.x-mocegui.font.size,y=4+mocegui.font.size*4},{x=mocegui.font.size-4,y=mocegui.font.size-4})
-    paused.func = function ()
-        paused.color = (options.paused) and rl.RED or rl.GREEN
+    local debugpanel = mocegui.spawndebug(customposition)
+    --debugpanel.text.new("pause\nfreeze\nrendergrass\nrenderterrain\nrenderwater\nrenderwires\npretty grass",{x=0,y=2+(mocegui.font.size*4)})
+    --debugpanel.size.y = debugpanel.size.y + (mocegui.font.size+2)*6
+    local function worldredraw()
         world.redraw = true
-        options.paused = (options.paused == false) and true or false
-        print("paused = " .. (options.paused and 'true' or 'false'))
     end
-    paused.color = (not options.paused) and rl.RED or rl.GREEN
-
-    -- freeze button
-    local freeze = debugpanel.button.new({x=debugpanel.size.x-mocegui.font.size,y=4+(mocegui.font.size*#debugpanel.button+1)+(mocegui.font.size*3)},{x=mocegui.font.size-4,y=mocegui.font.size-4})
-    freeze.func = function ()
-        freeze.color = (options.freeze) and rl.RED or rl.GREEN
-        world.redraw = true
-        options.freeze = (options.freeze == false) and true or false
-        print (options.freeze)
-    end
-    freeze.color = (not options.freeze) and rl.RED or rl.GREEN
-
-    -- rendergrass button
-    local rendergrass = debugpanel.button.new({x=debugpanel.size.x-mocegui.font.size,y=4+(mocegui.font.size*#debugpanel.button+1)+(mocegui.font.size*3)},{x=mocegui.font.size-4,y=mocegui.font.size-4})
-    rendergrass.func = function ()
-        rendergrass.color = (options.rendergrass) and rl.RED or rl.GREEN
-        world.redraw = true
-        options.rendergrass = (options.rendergrass == false) and true or false
-    end
-    rendergrass.color = (not options.rendergrass) and rl.RED or rl.GREEN
-
-    -- renderterrain button
-    local renderterrain = debugpanel.button.new({x=debugpanel.size.x-mocegui.font.size,y=4+(mocegui.font.size*#debugpanel.button+1)+(mocegui.font.size*3)},{x=mocegui.font.size-4,y=mocegui.font.size-4})
-    renderterrain.func = function ()
-        renderterrain.color = (options.renderterrain) and rl.RED or rl.GREEN
-        world.redraw = true
-        options.renderterrain = (options.renderterrain == false) and true or false
-    end
-    renderterrain.color = (not options.renderterrain) and rl.RED or rl.GREEN
-    
-    -- renderwater button
-    local renderwater = debugpanel.button.new({x=debugpanel.size.x-mocegui.font.size,y=4+(mocegui.font.size*#debugpanel.button+1)+(mocegui.font.size*3)},{x=mocegui.font.size-4,y=mocegui.font.size-4})
-    renderwater.func = function ()
-        renderwater.color = (options.renderwater) and rl.RED or rl.GREEN
-        world.redraw = true
-        options.renderwater = (options.renderwater == false) and true or false
-    end
-    renderwater.color = (not options.renderwater) and rl.RED or rl.GREEN
-
-    -- nrenderwires button
-    local renderwires = debugpanel.button.new({x=debugpanel.size.x-mocegui.font.size,y=4+(mocegui.font.size*#debugpanel.button+1)+(mocegui.font.size*3)},{x=mocegui.font.size-4,y=mocegui.font.size-4})
-    renderwires.func = function ()
-        renderwires.color = (options.renderwires) and rl.RED or rl.GREEN
-        world.redraw = true
-        options.renderwires = (options.renderwires == false) and true or false
-    end
-    renderwires.color = (not options.renderwires) and rl.RED or rl.GREEN
-
-    -- prettygrass button
-    local prettygrass = debugpanel.button.new({x=debugpanel.size.x-mocegui.font.size,y=4+(mocegui.font.size*#debugpanel.button+1)+(mocegui.font.size*3)},{x=mocegui.font.size-4,y=mocegui.font.size-4})
-    prettygrass.func = function ()
-        prettygrass.color = (options.prettygrass) and rl.RED or rl.GREEN
-        print(prettygrass.color.r)
-        world.redraw = true
-        options.prettygrass = (options.prettygrass == false) and true or false
-    end
-    prettygrass.color = (not options.prettygrass) and rl.RED or rl.GREEN
+    debugpanel.switch.new('paused',options,'paused',worldredraw)
+    debugpanel.switch.new('freeze',options,'freeze',worldredraw)
+    debugpanel.switch.new('rendergrass',options,'rendergrass',worldredraw)
+    debugpanel.switch.new('renderterrain',options,'renderterrain',worldredraw)
+    debugpanel.switch.new('renderwater',options,'renderwater',worldredraw)
+    debugpanel.switch.new('renderwires',options,'renderwires',worldredraw)
+    debugpanel.switch.new('prettygrass',options,'prettygrass',worldredraw)
+    mocegui.newButton(debugpanel,function()
+        print(mocegui.titlecache)
+    end,{},'Console print test',nil,rl.WHITE)
 end
 
 -- main loop
@@ -192,7 +141,7 @@ function main()
     end
 
     -- spawns extended debugger window
-    local debbuger = _debugger(world)
+    options._debugger(world)
 
     --startup message
     local versiculo = 
@@ -206,20 +155,11 @@ Sobreveio a tarde e depois a manha: foi o primeiro dia.
 ]]
 .. [[                                            Genesis 1:1-5]]
 
-    -- this set the message window that pops up the disapears
-    local defwin = mocegui.newWindow(nil,{x=options.screen.x-413,y=options.screen.y-135},{x=412,y=134}) -- default window
-    defwin.text.new(versiculo,{x=4,y=4})
-    republica.util.agendar(mocegui.pending, function(obj)
-        for i,v in ipairs(mocegui.window) do
-            if v == obj then
-                mocegui.window = republica.util.array.clear(mocegui.window)
-                republica.util.table.move(mocegui.window,i,#mocegui.window)
-                mocegui.window[#mocegui.window] = nil
-                mocegui.window = republica.util.array.clear(mocegui.window)
-                break
-            end
-        end
-    end,{defwin},7)
+    -- this set the message window that pops up then disapears
+    local txtwin = mocegui.newTextWindow(nil,versiculo)
+    txtwin.switch.new('paused',options,'paused')
+    txtwin.position = {x=options.screen.x-txtwin.size.x,y=options.screen.y-txtwin.size.y-1}
+    mocegui.timeout(txtwin,7)
     
     
     -- main loop

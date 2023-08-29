@@ -25,7 +25,7 @@ o.freeze = false
 o.rendergrass = true
 o.renderterrain = true
 o.renderwater = true
-o.renderwires = false
+o.renderwires = true
 o.prettygrass = false
 --camera
 o.cameraposition = {x=-20,y=100,z=-20}

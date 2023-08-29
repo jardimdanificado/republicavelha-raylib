@@ -12,6 +12,8 @@ return function (world,republica,options)
     elseif(rl.IsKeyPressed(rl.KEY_P)) then
         world.redraw = true
         options.prettygrass = (options.prettygrass == false) and true or false
+    elseif(rl.IsKeyPressed(rl.KEY_K)) then
+        options._debugger(world,{x=rl.GetMouseX(),y=rl.GetMouseY()})
     elseif(rl.IsKeyPressed(rl.KEY_W)) then
         world.redraw = true
         options.renderwater = (options.renderwater == false) and true or false
